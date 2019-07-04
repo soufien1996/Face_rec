@@ -42,22 +42,33 @@ def run(mode,localPath):
 		# initialize the video stream and allow the cammera sensor to warmup
 		print("[INFO] starting video stream...")
 		vs = VideoStream(src=0).start()
+		w = int(vs.get(3))
+		h = int(vs.get(4))
 		time.sleep(2.0)
 	elif (mode == "local"):
 		vidcap = cv2.VideoCapture(localPath)
 		success,frame = vidcap.read()
 		fps = vidcap.get(cv2.CAP_PROP_FPS)
 		frameCtr = 0
-	""" loop over the frames from the video stream """
+		w = int(vidcap.get(3))
+		h = int(vidcap.get(4))
+
+
+		
+	
+	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+	out = cv2.VideoWriter('output.avi', fourcc, 15, (w, h)) 
+    
 	while success:
 		processStartTs = time.time()
 
 		""" Acquire the next frame """
 		if (mode == "stream"):
 			frame = vs.read()
-
+			
 		elif (mode == "local"):
 			success,frame = vidcap.read()
+			
 			frameCtr += 1
 
 		""" grab the frame from the threaded video stream and resize it
@@ -108,7 +119,9 @@ def run(mode,localPath):
 			continue
 
 		cv2.putText(frame,"FPS : "+str(int(1/(time.time()-processStartTs))),(20,30), font, 1,(0,255,0),3,cv2.LINE_AA,False)
-		cv2.imshow("Frame", frame)
+		out.write(frame)
+        
+		#cv2.imshow("Frame", frame)
 		if(len(helpers.candidate_persons) >= (helpers.MIN_FACES_PER_CLUSTER* helpers.min_clusters)):
 			cluster_faces.cluster()
 		key = cv2.waitKey(1) & 0xFF
@@ -120,6 +133,7 @@ def run(mode,localPath):
 	if (mode == "stream"):
 		vs.stop()
 	endTS = time.time()
+	out.release()
 	print("Total number of unique faces = ",len(helpers.unique_persons))
 	print("Total duration")
 	print(endTS - startTS)
